@@ -23,7 +23,7 @@ const game = new Phaser.Game(config);
 
 class MainScene extends Phaser.Scene {
     private ground: Phaser.Physics.Arcade.StaticGroup;
-    private obstacle: Phaser.Physics.Arcade.Group;
+    private obstacles: Phaser.Physics.Arcade.Group[];
 
     constructor() {
         super('MainScene');
@@ -36,10 +36,12 @@ class MainScene extends Phaser.Scene {
      public create(): void {
         this.add.image(200, 300, 'sky').setScale(1.4);
         this.createGround();
+        this.createObstacles();
     }
 
     public update(): void {
       this.moveBackground();
+      this.moveObstacles();
     }
 
     private loadAssets(): void {
@@ -65,11 +67,31 @@ class MainScene extends Phaser.Scene {
         })
     }
 
-    private createObstacle(): void {
-      this.obstacle = this.physics.add.group();
-      for (let i = 0; i < 10; i++) {
-        this.obstacle.create(0, 50 * i, 'obstacle').setScale(0.1).setOrigin(0, 0);
-      }
+    private createObstacles(): void {
+      this.obstacles = [this.physics.add.group(), this.physics.add.group()];
+      this.obstacles.forEach(this.configureObstacle);
+    }
+
+    private configureObstacle(obstacle: Phaser.Physics.Arcade.Group, obstacleIndex: number): void {
+      const startOfGap = Math.floor(Math.random() * 7) + 2;
+
+        for (let i = 0; i < 10; i++) {
+          if(i === startOfGap || i+1 === startOfGap) {
+            continue;
+          }
+        obstacle.create(400 + obstacleIndex * 250 , 50 * i, 'obstacle').setScale(0.1).setOrigin(0, 0);
+      };
+
+    }
+
+    private moveObstacles(): void {
+      this.obstacles.forEach(obstacle => {
+        obstacle.setX(obstacle.getFirst(true).x - 1);
+        if(obstacle.getFirst(true).x === -50) {
+          obstacle.clear();
+          this.configureObstacle(obstacle, 0)
+        }
+      })
     }
 }
 
