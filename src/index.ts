@@ -197,7 +197,7 @@ class MainScene extends Phaser.Scene {
       this.createObstacles();
       this.collieded = false;
       this.restartText.setX(-100);
-      this.player.anims.play('fly');
+      this.player.anims.play('fly');    
     }
 }
 
