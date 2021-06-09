@@ -29,8 +29,11 @@ class MainScene extends Phaser.Scene {
     private keyboard: Phaser.Types.Input.Keyboard.CursorKeys;
     private playerRotation = 0;
     private readonly minimalVelocity = -240;
-    private readonly velocityIncrease = 80;
+    private readonly velocityIncrease = 70;
     private collieded = false;
+    private score = 0;
+    private scoreText: Phaser.GameObjects.Text;
+    private restartText: Phaser.GameObjects.Text;
 
     constructor() {
         super('MainScene');
@@ -44,15 +47,11 @@ class MainScene extends Phaser.Scene {
      public create(): void {
         this.add.image(200, 300, 'sky').setScale(1.4);
         this.player = this.physics.add.sprite(200, 300, 'bird').setScale(2.4);
-        this.anims.create({
-          key: 'fly',
-          frames: this.anims.generateFrameNumbers('bird', {start: 0, end: 2}),
-          frameRate: 10,
-          repeat: -1,
-        })
-        this.player.anims.play('fly');
+        this.createPlayerAnimation();
         this.createGround();
         this.createObstacles();
+        this.createScoreText();
+        this.addRestartText(); 
         this.physics.add.collider(this.player, this.ground);
     }
 
@@ -61,6 +60,7 @@ class MainScene extends Phaser.Scene {
         this.moveBackground();
         this.moveObstacles();
         this.handleCollideObstacled();
+        this.handleScore();
       }
       this.handleControl();
     }
@@ -144,6 +144,8 @@ class MainScene extends Phaser.Scene {
         obstacle.children.iterate((item: any) => {
          if (this.checkIfCollide(this.player, item)) {
            this.collieded = true;
+           this.player.anims.stop();
+           this.restartText.setX(160);
          }
         })
       })
@@ -154,6 +156,48 @@ class MainScene extends Phaser.Scene {
       const obstacleBounds = obstacle.getBounds();
 
       return Phaser.Geom.Intersects.RectangleToRectangle(playerBounds, obstacleBounds);
+    }
+
+    private handleScore(): void {
+      this.obstacles.forEach(obstacle => {
+        if(obstacle.getFirst(true).x === 150) {
+          this.score++;
+          this.scoreText.setText('Score: ' + this.score);
+        }
+      })
+    }
+
+    private createScoreText(): void {
+      this.scoreText = this.add.text(10, 10, 'Score: ' + this.score);
+      this.scoreText.depth = 1;
+    }
+
+    private createPlayerAnimation(): void {
+      this.anims.create({
+        key: 'fly',
+        frames: this.anims.generateFrameNumbers('bird', {start: 0, end: 2}),
+        frameRate: 10,
+        repeat: -1,
+      })
+      this.player.anims.play('fly');
+    }
+
+    private addRestartText(): void {
+      this.restartText = this.add.text(-100 , 300, 'RESTART', {fontSize: '24px', color: 'red'}).setInteractive();
+      this.restartText.depth = 1;
+      this.restartText.on('pointerdown', this.handleRestartClick.bind(this));
+    }
+
+    private handleRestartClick(): void {
+      this.score = 0;
+      this.scoreText.setText('Score: ' + this.score);
+      this.player.setX(200);
+      this.player.setY(300);
+      this.obstacles.forEach(o => o.destroy(true));
+      this.createObstacles();
+      this.collieded = false;
+      this.restartText.setX(-100);
+      this.player.anims.play('fly');
     }
 }
 
