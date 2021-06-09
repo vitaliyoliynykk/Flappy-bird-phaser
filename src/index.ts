@@ -27,7 +27,10 @@ class MainScene extends Phaser.Scene {
     private obstacles: Phaser.Physics.Arcade.StaticGroup[];
     private player: Phaser.Physics.Arcade.Sprite;
     private keyboard: Phaser.Types.Input.Keyboard.CursorKeys;
-    private initialRotation = 0;
+    private playerRotation = 0;
+    private readonly minimalVelocity = -240;
+    private readonly velocityIncrease = 80;
+    private collieded = false;
 
     constructor() {
         super('MainScene');
@@ -50,31 +53,38 @@ class MainScene extends Phaser.Scene {
         this.player.anims.play('fly');
         this.createGround();
         this.createObstacles();
+        this.physics.add.collider(this.player, this.ground);
     }
 
     public update(): void {
-      this.moveBackground();
-      this.moveObstacles();
+      if(!this.collieded) {
+        this.moveBackground();
+        this.moveObstacles();
+        this.handleCollideObstacled();
+      }
       this.handleControl();
     }
 
     private handleControl(): void {
-      if(this.keyboard.space.isDown) {
-        if(this.player.body.velocity.y >= - 240) {
-          this.player.setVelocityY(this.player.body.velocity.y - 80);
-          if(this.initialRotation >= -1) {
+      if (this.keyboard.space.isDown) {
+        if (this.player.body.velocity.y >= this.minimalVelocity) {
+          if (!this.collieded) {
+            this.player.setVelocityY(this.player.body.velocity.y - this.velocityIncrease);
+          }
+
+          if(this.playerRotation >= -1) {
             this.setPlayerRotation();
           }
         }
       }
-      if(this.initialRotation <= 1 && this.keyboard.space.isUp) {
+      if (this.playerRotation <= 1 && this.keyboard.space.isUp) {
         this.setPlayerRotation();
       }
     }
 
     private setPlayerRotation(): void {
-      this.initialRotation = this.player.body.velocity.y * 0.003 
-      this.player.setRotation(this.initialRotation);
+      this.playerRotation = this.player.body.velocity.y * 0.003 
+      this.player.setRotation(this.playerRotation);
     }
 
     private loadAssets(): void {
@@ -104,16 +114,17 @@ class MainScene extends Phaser.Scene {
     private createObstacles(): void {
       this.obstacles = [this.physics.add.staticGroup(), this.physics.add.staticGroup()];
       this.obstacles.forEach(this.configureObstacle);
+      this.obstacles[0].children.iterate(({x, y}: any) => console.log(x, y))
     }
 
     private configureObstacle(obstacle: Phaser.Physics.Arcade.StaticGroup, obstacleIndex: number): void {
-      const startOfGap = Math.floor(Math.random() * 7) + 2;
+      const startOfGap = Math.floor(Math.random() * 6) + 3;
 
         for (let i = 0; i < 10; i++) {
-          if(i === startOfGap || i+1 === startOfGap) {
+          if(i === startOfGap || i+1 === startOfGap || i+2 === startOfGap) {
             continue;
           }
-        obstacle.create(400 + obstacleIndex * 250 , 50 * i, 'obstacle').setScale(0.1).setOrigin(0, 0);
+        obstacle.create(400 + obstacleIndex * 250 , 50 * i, 'obstacle').setScale(0.1).setOrigin(0, 0).refreshBody();
       };
 
     }
@@ -126,6 +137,23 @@ class MainScene extends Phaser.Scene {
           this.configureObstacle(obstacle, 0)
         }
       })
+    }
+
+    private handleCollideObstacled(): void {
+      this.obstacles.forEach((obstacle) => {
+        obstacle.children.iterate((item: any) => {
+         if (this.checkIfCollide(this.player, item)) {
+           this.collieded = true;
+         }
+        })
+      })
+    }
+
+    private checkIfCollide(player: Phaser.Physics.Arcade.Sprite, obstacle: any): boolean {
+      const playerBounds = player.getBounds();
+      const obstacleBounds = obstacle.getBounds();
+
+      return Phaser.Geom.Intersects.RectangleToRectangle(playerBounds, obstacleBounds);
     }
 }
 
