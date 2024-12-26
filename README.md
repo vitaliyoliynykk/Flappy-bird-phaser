@@ -17,3 +17,5 @@ or start localy
 ```sh
 npm run start
 ```
+## Running app
+![Demo](assets/demo.png)
